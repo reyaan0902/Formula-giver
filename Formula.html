@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Formula Finder</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #0f0f0f; color: #f0f0f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
+  .box { width: 100%; max-width: 480px; }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; letter-spacing: -0.02em; }
+  h1 span { color: #f0c040; }
+  .sub { font-size: 0.72rem; color: #555; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1.2rem; }
+  input { width: 100%; padding: 0.8rem 1rem; font-size: 1rem; background: #1a1a1a; border: 1.5px solid #2a2a2a; border-radius: 8px; color: #f0f0f0; outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: #f0c040; }
+  input::placeholder { color: #444; }
+  .cats { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.8rem; }
+  .cat { padding: 0.2rem 0.65rem; border: 1px solid #2a2a2a; border-radius: 999px; font-size: 0.7rem; color: #555; cursor: pointer; transition: all 0.15s; }
+  .cat:hover, .cat.active { border-color: #f0c040; color: #f0c040; }
+  #out { margin-top: 1.6rem; display: none; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1.2rem 1.4rem; animation: up 0.3s ease; }
+  .cat-tag { font-size: 0.65rem; color: #f0c040; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.4rem; }
+  .fname { font-size: 1rem; color: #fff; margin-bottom: 0.8rem; font-weight: 600; }
+  .formula { font-size: 1.6rem; font-family: Georgia, serif; color: #f0c040; text-align: center; margin-bottom: 1rem; padding: 0.6rem; background: #111; border-radius: 6px; }
+  .var { font-size: 0.83rem; color: #999; margin-bottom: 0.3rem; }
+  .var b { color: #f0c040; margin-right: 0.5rem; }
+  #none { margin-top: 1.2rem; font-size: 0.83rem; color: #444; display: none; }
+  #count { font-size: 0.7rem; color: #333; margin-top: 0.5rem; }
+  @keyframes up { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Formula <span>Finder</span></h1>
+  <p class="sub">JEE · Physics · Math · Chemistry</p>
+  <input id="q" placeholder="Search — ohm, momentum, lens, bohr…" autofocus />
+  <div class="cats" id="cats"></div>
+  <div id="count"></div>
+  <div id="out">
+    <div class="cat-tag" id="cat"></div>
+    <div class="fname" id="fname"></div>
+    <div class="formula" id="formula"></div>
+    <div id="vars"></div>
+  </div>
+  <div id="none">No match found. Try: force, wave, bohr, snell, bernoulli…</div>
+</div>
+<script>
+const db = [
+  { keys: ["speed","velocity"], name: "Speed / Velocity", formula: "v = d / t", category: "Mechanics", vars: [["v","velocity (m/s)"],["d","distance (m)"],["t","time (s)"]] },
+  { keys: ["acceleration"], name: "Acceleration", formula: "a = (v - u) / t", category: "Mechanics", vars: [["a","acceleration (m/s²)"],["v","final velocity"],["u","initial velocity"],["t","time (s)"]] },
+  { keys: ["force","newton second","newton"], name: "Newton's 2nd Law", formula: "F = ma", category: "Mechanics", vars: [["F","force (N)"],["m","mass (kg)"],["a","acceleration (m/s²)"]] },
+  { keys: ["momentum"], name: "Momentum", formula: "p = mv", category: "Mechanics", vars: [["p","momentum (kg·m/s)"],["m","mass (kg)"],["v","velocity (m/s)"]] },
+  { keys: ["impulse"], name: "Impulse", formula: "J = F × t = Δp", category: "Mechanics", vars: [["J","impulse (N·s)"],["F","force (N)"],["t","time (s)"],["Δp","change in momentum"]] },
+  { keys: ["kinetic energy","ke"], name: "Kinetic Energy", formula: "KE = ½mv²", category: "Mechanics", vars: [["KE","kinetic energy (J)"],["m","mass (kg)"],["v","velocity (m/s)"]] },
+  { keys: ["potential energy","pe","gravitational potential"], name: "Gravitational PE", formula: "PE = mgh", category: "Mechanics", vars: [["PE","potential energy (J)"],["m","mass (kg)"],["g","9.8 m/s²"],["h","height (m)"]] },
+  { keys: ["work","work done"], name: "Work Done", formula: "W = Fd cosθ", category: "Mechanics", vars: [["W","work (J)"],["F","force (N)"],["d","displacement (m)"],["θ","angle between F and d"]] },
+  { keys: ["power","watt"], name: "Power", formula: "P = W/t = Fv", category: "Mechanics", vars: [["P","power (W)"],["W","work (J)"],["t","time (s)"],["F","force (N)"],["v","velocity (m/s)"]] },
+  { keys: ["torque","moment"], name: "Torque", formula: "τ = rF sinθ", category: "Mechanics", vars: [["τ","torque (N·m)"],["r","distance from pivot (m)"],["F","force (N)"],["θ","angle between r and F"]] },
+  { keys: ["projectile","range","projectile motion"], name: "Projectile Range", formula: "R = u² sin2θ / g", category: "Mechanics", vars: [["R","range (m)"],["u","initial speed (m/s)"],["θ","launch angle"],["g","9.8 m/s²"]] },
+  { keys: ["centripetal","circular motion"], name: "Centripetal Force", formula: "F = mv² / r", category: "Mechanics", vars: [["F","centripetal force (N)"],["m","mass (kg)"],["v","speed (m/s)"],["r","radius (m)"]] },
+  { keys: ["gravity","gravitational force","newton gravity"], name: "Newton's Gravitation", formula: "F = Gm₁m₂ / r²", category: "Mechanics", vars: [["G","6.674×10⁻¹¹ N·m²/kg²"],["m₁ m₂","masses (kg)"],["r","distance (m)"]] },
+  { keys: ["escape velocity","escape"], name: "Escape Velocity", formula: "v = √(2GM/R)", category: "Mechanics", vars: [["v","escape velocity (m/s)"],["G","gravitational constant"],["M","mass of planet (kg)"],["R","radius of planet (m)"]] },
+  { keys: ["ohm","ohms law","voltage","resistance"], name: "Ohm's Law", formula: "V = IR", category: "Electricity", vars: [["V","voltage (V)"],["I","current (A)"],["R","resistance (Ω)"]] },
+  { keys: ["electric power","electrical power"], name: "Electric Power", formula: "P = VI = I²R = V²/R", category: "Electricity", vars: [["P","power (W)"],["V","voltage (V)"],["I","current (A)"],["R","resistance (Ω)"]] },
+  { keys: ["capacitance","capacitor"], name: "Capacitance", formula: "C = Q / V", category: "Electricity", vars: [["C","capacitance (F)"],["Q","charge (C)"],["V","voltage (V)"]] },
+  { keys: ["coulomb","electric force","charge force"], name: "Coulomb's Law", formula: "F = kq₁q₂ / r²", category: "Electricity", vars: [["k","9×10⁹ N·m²/C²"],["q₁ q₂","charges (C)"],["r","distance (m)"]] },
+  { keys: ["electric field","efield"], name: "Electric Field", formula: "E = F/q = kQ/r²", category: "Electricity", vars: [["E","electric field (N/C)"],["F","force (N)"],["q","test charge (C)"],["Q","source charge (C)"],["r","distance (m)"]] },
+  { keys: ["magnetic force","lorentz"], name: "Magnetic Force on Charge", formula: "F = qvB sinθ", category: "Magnetism", vars: [["F","force (N)"],["q","charge (C)"],["v","velocity (m/s)"],["B","magnetic field (T)"],["θ","angle"]] },
+  { keys: ["faraday","electromagnetic induction","emf","induction"], name: "Faraday's Law", formula: "ε = −dΦ/dt", category: "Magnetism", vars: [["ε","induced EMF (V)"],["Φ","magnetic flux (Wb)"],["t","time (s)"]] },
+  { keys: ["wave","wavelength","wave speed"], name: "Wave Speed", formula: "v = fλ", category: "Waves", vars: [["v","wave speed (m/s)"],["f","frequency (Hz)"],["λ","wavelength (m)"]] },
+  { keys: ["snell","refraction","snells law"], name: "Snell's Law", formula: "n₁ sinθ₁ = n₂ sinθ₂", category: "Waves", vars: [["n₁ n₂","refractive indices"],["θ₁","angle of incidence"],["θ₂","angle of refraction"]] },
+  { keys: ["lens","mirror","lens formula"], name: "Lens / Mirror Formula", formula: "1/f = 1/v + 1/u", category: "Waves", vars: [["f","focal length (m)"],["v","image distance (m)"],["u","object distance (m)"]] },
+  { keys: ["ideal gas","gas law","pv","pvnrt"], name: "Ideal Gas Law", formula: "PV = nRT", category: "Thermodynamics", vars: [["P","pressure (Pa)"],["V","volume (m³)"],["n","moles"],["R","8.314 J/mol·K"],["T","temperature (K)"]] },
+  { keys: ["first law thermodynamics","internal energy","thermodynamics"], name: "First Law of Thermodynamics", formula: "ΔU = Q − W", category: "Thermodynamics", vars: [["ΔU","change in internal energy (J)"],["Q","heat added (J)"],["W","work done by system (J)"]] },
+  { keys: ["de broglie","matter wave","broglie","debroglie"], name: "de Broglie Wavelength", formula: "λ = h / mv", category: "Modern Physics", vars: [["λ","wavelength (m)"],["h","6.626×10⁻³⁴ J·s"],["m","mass (kg)"],["v","velocity (m/s)"]] },
+  { keys: ["photoelectric","einstein photoelectric"], name: "Photoelectric Effect", formula: "KE = hf − φ", category: "Modern Physics", vars: [["KE","max kinetic energy of electron"],["h","Planck's constant"],["f","frequency of light"],["φ","work function"]] },
+  { keys: ["bohr","energy level","hydrogen"], name: "Bohr Energy Levels", formula: "Eₙ = −13.6 / n² eV", category: "Modern Physics", vars: [["Eₙ","energy at level n (eV)"],["n","principal quantum number (1,2,3…)"]] },
+  { keys: ["radioactive","half life","decay","radioactive decay"], name: "Radioactive Decay", formula: "N = N₀ e^(−λt)", category: "Modern Physics", vars: [["N","remaining nuclei"],["N₀","initial nuclei"],["λ","decay constant"],["t","time"]] },
+  { keys: ["pressure","fluid pressure","fluid"], name: "Fluid Pressure", formula: "P = ρgh", category: "Fluids", vars: [["P","pressure (Pa)"],["ρ","density (kg/m³)"],["g","9.8 m/s²"],["h","depth (m)"]] },
+  { keys: ["bernoulli"], name: "Bernoulli's Equation", formula: "P + ½ρv² + ρgh = const", category: "Fluids", vars: [["P","pressure (Pa)"],["ρ","fluid density (kg/m³)"],["v","flow speed (m/s)"],["h","height (m)"]] }
+];
+const cats = [...new Set(db.map(f => f.category))];
+document.getElementById('cats').innerHTML = cats.map(c =>
+  `<div class="cat" onclick="filterCat('${c}')">${c}</div>`).join('');
+document.getElementById('count').textContent = `${db.length} formulas`;
+let activecat = '';
+function show(f) {
+  document.getElementById('cat').textContent = f.category;
+  document.getElementById('fname').textContent = f.name;
+  document.getElementById('formula').textContent = f.formula;
+  document.getElementById('vars').innerHTML = f.vars.map(([k,v]) => `<div class="var"><b>${k}</b>${v}</div>`).join('');
+  document.getElementById('out').style.display = 'block';
+  document.getElementById('none').style.display = 'none';
+}
+function search() {
+  const q = document.getElementById('q').value.toLowerCase().trim();
+  if (!q) { document.getElementById('out').style.display = 'none'; document.getElementById('none').style.display = 'none'; return; }
+  const pool = activecat ? db.filter(f => f.category === activecat) : db;
+  const match = pool.find(f => f.keys.some(k => q.includes(k) || k.includes(q)) || f.name.toLowerCase().includes(q));
+  if (match) show(match);
+  else { document.getElementById('out').style.display = 'none'; document.getElementById('none').style.display = 'block'; }
+}
+function filterCat(cat) {
+  activecat = activecat === cat ? '' : cat;
+  document.querySelectorAll('.cat').forEach(el => el.classList.toggle('active', el.textContent === activecat));
+  search();
+}
+document.getElementById('q').addEventListener('input', search);
+</script>
+</body>
+</html>
