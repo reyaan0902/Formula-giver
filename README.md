@@ -49,3 +49,4 @@ Formula Giver simplifies revision by giving instant access to important formulas
 Quick access → Better preparation
 
 Student Project | DJ Sanghvi
+Youtube link - https://youtu.be/2HxdSe5kRE8
